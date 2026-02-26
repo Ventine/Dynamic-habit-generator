@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Rutina Maestra</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js" defer></script>
+    <script type="module" src="app.js" defer></script>
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>Planificador Dinámico</h1>
+            <p class="subtitle">Enfoque y disciplina diaria</p>
+        </header>
+        
+        <section class="controls">
+            <button id="btnGenerate" class="btn btn-primary" aria-label="Generar tareas aleatorias">
+                🎲 Generar Tareas de Hoy
+            </button>
+        </section>
+
+        <section id="taskList" class="task-list preview-list" aria-live="polite" hidden></section>
+
+        <section id="actionButtons" class="action-buttons" hidden>
+            <button id="btnReject" class="btn btn-danger">Tirar dados de nuevo</button>
+            <button id="btnAccept" class="btn btn-success">¡Aceptar el reto!</button>
+        </section>
+
+        <section id="routineTracker" class="routine-tracker" hidden>
+            <div class="custom-task-container">
+                <input type="text" id="inputCustomTask" placeholder="¿Surgió algo nuevo? Escríbelo aquí..." aria-label="Nueva tarea extra">
+                <button id="btnAddCustom" class="btn btn-primary btn-small">➕ Agregar</button>
+            </div>
+
+            <details class="tracker-group" open>
+                <summary>⏳ Tareas por hacer (<span id="pendingCount">0</span>)</summary>
+                <div id="pendingTasks" class="tracker-content"></div>
+            </details>
+
+            <details class="tracker-group">
+                <summary>✅ Tareas terminadas (<span id="completedCount">0</span>)</summary>
+                <div id="completedTasks" class="tracker-content"></div>
+            </details>
+        </section>
+
+        <section class="global-stats">
+            <button id="btnShowPendingPool" class="btn btn-outline">🗂️ Ver Pool Restante</button>
+            <button id="btnShowCompletedPool" class="btn btn-outline">🏆 Ver Consumidas</button>
+            <button id="btnShowCustom" class="btn btn-outline" style="width: 100%; margin-top: 0.5rem; border-color: #cbd5e1;">📌 Ver Tareas Extra de Hoy</button>
+        </section>
+
+        <section id="historySection" class="history-section" hidden>
+            <h2>🌟 Victorias Recientes</h2>
+            <div id="historyList" class="history-list"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>🔒 Datos persistidos de forma segura en LocalStorage.</p>
+        <button id="btnReset" class="reset-btn" aria-label="Reiniciar aplicación">Reiniciar Memoria</button>
+    </footer>
+</body>
+</html>
