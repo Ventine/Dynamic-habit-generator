@@ -1,15 +1,27 @@
 class RoutineManager {
     constructor() {
+        // Pool de tareas para los 5 días de la semana (Lunes a Viernes)
+        // Cada categoría tiene 5 elementos para cubrir la semana laboral.
         this.defaultTasks = {
-            ejercicio: ['Cardio', 'Superior', 'Inferior', 'Cardio', 'Abdomen', 'Descanso', 'Descanso'],
-            ingles: ['Video Dev YT', 'Song', 'Journey', 'Documental', 'Study with IA', 'Descanso', 'Descanso'],
-            programacion: ['Estudiar con YT', 'Kill Code', 'Novedades', 'Estudiar con IA', 'API Spring', 'Descanso', 'Descanso'],
-            leer: ['Libro', 'Libro', 'Libro', 'Libro', 'Libro', 'Descanso', 'Descanso'],
-            gatos: ['Limpiar', 'Dientes', 'Dientes', 'Dientes', 'Pelo', 'Descanso', 'Descanso']
+            trabajo: ['Jornada Laboral 💼', 'Jornada Laboral 💼', 'Jornada Laboral 💼', 'Jornada Laboral 💼', 'Jornada Laboral 💼'],
+            ingles: ['Podcast 🎧', 'Podcast 🎧', 'Podcast + Speaking 🗣️', 'Podcast + Speaking 🗣️', 'Podcast + Speaking 🗣️'],
+            leer: ['Lectura 📖', 'Lectura 📖', 'Lectura 📖', 'Lectura 📖', 'Descanso 🍃'],
+            gatos: ['Pelo + Dientes 🐱', 'General + Dientes 🐱', 'Descanso 🍃', 'Descanso 🍃', 'Descanso 🍃'],
+            apto: ['Aseo y Comida 🏠', 'Aseo y Comida 🏠', 'Aseo y Comida 🏠', 'Aseo y Comida 🏠', 'Aseo y Comida 🏠'],
+            cv: ['Update CV 📄', 'Update CV 📄', 'Update CV 📄', 'Descanso 🍃', 'Descanso 🍃'],
+            ejercicio: ['Entrenamiento 🔥', 'Entrenamiento 🔥', 'Descanso 🍃', 'Descanso 🍃', 'Descanso 🍃']
         };
 
-        // Añadimos 'apto' y 'extra' a las etiquetas visuales
-        this.labels = { ejercicio: '💪', ingles: '🗣️', programacion: '💻', leer: '📚', gatos: '🐱', apto: '🏠', extra: '📌' };
+        this.labels = { 
+            trabajo: '💼', 
+            ingles: '🗣️', 
+            leer: '📚', 
+            gatos: '🐱', 
+            apto: '🏠', 
+            cv: '📄', 
+            ejercicio: '💪', 
+            extra: '📌' 
+        };
 
         this.DOM = {
             btnGenerate: document.getElementById('btnGenerate'),
@@ -27,7 +39,6 @@ class RoutineManager {
             historyList: document.getElementById('historyList'),
             btnShowPendingPool: document.getElementById('btnShowPendingPool'),
             btnShowCompletedPool: document.getElementById('btnShowCompletedPool'),
-            // Nuevos elementos
             inputCustomTask: document.getElementById('inputCustomTask'),
             btnAddCustom: document.getElementById('btnAddCustom'),
             btnShowCustom: document.getElementById('btnShowCustom')
@@ -66,55 +77,57 @@ class RoutineManager {
     }
 
     generateRoutine() {
+        const now = new Date();
+        const dayIndex = now.getDay(); // 0: Dom, 1: Lun, ..., 6: Sab
+        const isWeekend = (dayIndex === 0 || dayIndex === 6);
+
         this.tempSelection = { schedule: {}, indicesToRemove: {} };
-        let descansosAcumulados = 0;
         
-        // Desordenar categorías para que el descanso no caiga siempre en la misma
-        const categorias = Object.keys(this.currentPool).sort(() => Math.random() - 0.5);
+        if (isWeekend) {
+            // FDS: Únicamente ejercicio
+            this.tempSelection.schedule['ejercicio'] = { name: 'Ejercicio FDS ⚡', done: false };
+            // No removemos nada del pool semanal ya que el pool es para Lu-Vi
+        } else {
+            // ENTRE SEMANA: Lógica de Pool con restricciones de días específicos
+            let descansosAcumulados = 0;
+            const categorias = Object.keys(this.currentPool).sort(() => Math.random() - 0.5);
 
-        // PRE-CÁLCULO: ¿Cuántas categorías en la ruleta de hoy tienen al menos un 'Descanso'?
-        let categoriesWithDescansoLeft = categorias.filter(c => 
-            this.currentPool[c].some(opt => opt.toLowerCase() === 'descanso')
-        ).length;
+            for (const category of categorias) {
+                let opciones = this.currentPool[category];
+                
+                if (opciones.length === 0) {
+                    this.tempSelection.schedule[category] = { name: "✨ Completado", done: false };
+                    continue;
+                }
 
-        for (const category of categorias) {
-            let opciones = this.currentPool[category];
-            
-            if (opciones.length === 0) {
-                this.tempSelection.schedule[category] = { name: "✨ Completado", done: false };
-                continue;
+                let seleccion = null;
+                let indexSeleccionado = -1;
+
+                // REGLAS ESTRICTAS POR DÍA
+                if (category === 'cv') {
+                    // CV: Lunes(1), Miércoles(3), Viernes(5)
+                    const isCvDay = [1, 3, 5].includes(dayIndex);
+                    indexSeleccionado = opciones.findIndex(opt => isCvDay ? !opt.includes('Descanso') : opt.includes('Descanso'));
+                } else if (category === 'ejercicio') {
+                    // Ejercicio: Martes(2), Jueves(4)
+                    const isEjDay = [2, 4].includes(dayIndex);
+                    indexSeleccionado = opciones.findIndex(opt => isEjDay ? !opt.includes('Descanso') : opt.includes('Descanso'));
+                }
+
+                // Si no es una categoría estricta o no se encontró el tipo de item deseado, fallback a aleatorio
+                if (indexSeleccionado === -1) {
+                    indexSeleccionado = Math.floor(Math.random() * opciones.length);
+                }
+
+                seleccion = opciones[indexSeleccionado];
+                if (seleccion.includes('Descanso')) descansosAcumulados++;
+
+                this.tempSelection.schedule[category] = { name: seleccion, done: false };
+                this.tempSelection.indicesToRemove[category] = indexSeleccionado;
             }
-
-            const hasDescanso = opciones.some(opt => opt.toLowerCase() === 'descanso');
-            // Si esta categoría tiene descanso, restamos 1 a las oportunidades futuras
-            if (hasDescanso) categoriesWithDescansoLeft--;
-
-            let opcionesValidas = opciones.map((opt, idx) => ({ name: opt, idx: idx }));
-
-            // REGLA 1: Máximo 2 descansos
-            if (descansosAcumulados >= 2) {
-                const sinDescanso = opcionesValidas.filter(o => o.name.toLowerCase() !== 'descanso');
-                if (sinDescanso.length > 0) opcionesValidas = sinDescanso;
-            } 
-            // REGLA 2: Mínimo 1 descanso. 
-            // Si no tenemos descansos, no quedan más categorías con descanso en el futuro, 
-            // y ESTA categoría sí tiene... ¡Forzamos el descanso!
-            else if (descansosAcumulados === 0 && categoriesWithDescansoLeft === 0 && hasDescanso) {
-                const soloDescanso = opcionesValidas.filter(o => o.name.toLowerCase() === 'descanso');
-                if (soloDescanso.length > 0) opcionesValidas = soloDescanso;
-            }
-
-            const seleccion = opcionesValidas[Math.floor(Math.random() * opcionesValidas.length)];
-            if (seleccion.name.toLowerCase() === 'descanso') descansosAcumulados++;
-
-            this.tempSelection.schedule[category] = { name: seleccion.name, done: false };
-            this.tempSelection.indicesToRemove[category] = seleccion.idx;
         }
 
-        this.tempSelection.schedule['apto'] = { name: 'Aseo y Mantenimiento', done: false, isStatic: true };
-
         this.renderPreview(this.tempSelection.schedule);
-        
         this.DOM.taskList.classList.remove('pop-animation');
         void this.DOM.taskList.offsetWidth; 
         this.DOM.taskList.classList.add('pop-animation');
@@ -130,9 +143,8 @@ class RoutineManager {
         for (const [key, taskObj] of Object.entries(tasks)) {
             const div = document.createElement('div');
             div.className = 'task-item';
-            // Formatear visualmente si es 'apto' o 'extra'
-            const catName = (key === 'apto' || key.startsWith('custom')) ? key : key;
-            div.innerHTML = `<span class="task-category">${this.labels[key.startsWith('custom') ? 'extra' : key]} ${catName.toUpperCase()}</span><span class="task-name">${taskObj.name}</span>`;
+            const icon = this.labels[key.startsWith('custom') ? 'extra' : key] || '🎯';
+            div.innerHTML = `<span class="task-category">${icon} ${key.toUpperCase()}</span><span class="task-name">${taskObj.name}</span>`;
             fragment.appendChild(div);
         }
         this.DOM.taskList.appendChild(fragment);
@@ -140,8 +152,11 @@ class RoutineManager {
 
     acceptRoutine() {
         if (!this.tempSelection) return;
+        // Solo removemos del pool si es día de semana (el fds es extra)
         for (const [category, index] of Object.entries(this.tempSelection.indicesToRemove)) {
-            this.currentPool[category].splice(index, 1);
+            if (this.currentPool[category]) {
+                this.currentPool[category].splice(index, 1);
+            }
         }
         const today = this.getTodayDate();
         this.todaySchedule = this.tempSelection.schedule;
@@ -149,7 +164,7 @@ class RoutineManager {
         this.DOM.taskList.hidden = true; 
         this.lockUI();
         this.renderTracker();
-        Swal.fire({ title: '¡Plan Guardado!', text: 'Marca las tareas a medida que las termines.', icon: 'info', confirmButtonColor: '#a2d2ff' });
+        Swal.fire({ title: '¡Plan Guardado!', text: 'A darle con todo hoy.', icon: 'info', confirmButtonColor: '#a2d2ff' });
     }
 
     renderTracker() {
@@ -181,20 +196,14 @@ class RoutineManager {
         if (pending === 0 && completed > 0) this.DOM.completedTasks.parentElement.setAttribute('open', '');
     }
 
-    // NUEVO REQUERIMIENTO: Agregar tareas extras al vuelo
     addCustomTask() {
         const taskName = this.DOM.inputCustomTask.value.trim();
         if (!taskName) return;
-
-        // Generamos un ID único para no sobreescribir tareas
         const customId = `custom_${Date.now()}`;
         this.todaySchedule[customId] = { name: taskName, done: false, isCustom: true };
-        
-        this.DOM.inputCustomTask.value = ''; // Limpiar input
+        this.DOM.inputCustomTask.value = '';
         this.saveData(this.getTodayDate());
         this.renderTracker();
-
-        // Pequeño toast (notificación no intrusiva)
         Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Tarea añadida', showConfirmButton: false, timer: 1500 });
     }
 
@@ -207,7 +216,6 @@ class RoutineManager {
 
     checkVictory() {
         const todasCompletadas = Object.values(this.todaySchedule).every(t => t.done === true);
-        
         if (todasCompletadas) {
             const today = this.getTodayDate();
             const existingIndex = this.history.findIndex(h => h.date === today);
@@ -222,20 +230,18 @@ class RoutineManager {
             }
             confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
             
-            // REQUERIMIENTO: Eliminar caché si se completó TODA la memoria semanal
             const poolEmpty = Object.values(this.currentPool).every(arr => arr.length === 0);
-
             if (poolEmpty) {
                 Swal.fire({ 
-                    title: '¡SEMANA MAESTRA!', 
-                    text: 'Has completado absolutamente TODAS las tareas guardadas del pool semanal. La caché se ha limpiado automáticamente para empezar un nuevo ciclo.', 
+                    title: '¡SEMANA COMPLETADA!', 
+                    text: 'Has vaciado tu pool de tareas semanales. Reiniciando para el próximo ciclo.', 
                     icon: 'success', 
                     confirmButtonColor: '#b7e4c7' 
                 }).then(() => {
-                    this.resetSystem(false, true); // True para mantener el historial
+                    this.resetSystem(false, true);
                 });
             } else {
-                Swal.fire({ title: '¡Impresionante!', text: 'Has completado todas tus tareas de hoy.', icon: 'success', confirmButtonColor: '#b7e4c7', color: '#4a5568' });
+                Swal.fire({ title: '¡Excelente!', text: 'Día terminado.', icon: 'success', confirmButtonColor: '#b7e4c7' });
             }
         }
     }
@@ -251,7 +257,7 @@ class RoutineManager {
     lockUI() {
         this.DOM.actionButtons.hidden = true;
         this.DOM.btnGenerate.hidden = false;
-        this.DOM.btnGenerate.textContent = 'Tu día está en marcha 🚀';
+        this.DOM.btnGenerate.textContent = 'Modo Enfoque Activo 🚀';
         this.DOM.btnGenerate.disabled = true;
     }
 
@@ -279,13 +285,10 @@ class RoutineManager {
         this.DOM.historyList.appendChild(fragment);
     }
 
-    // REQUERIMIENTO: Limpiar toda la memoria (con opción a preservar historial en auto-reset)
     resetSystem(silent = false, keepHistory = false) {
         const executeReset = () => {
             const savedHistory = keepHistory ? JSON.stringify(this.history) : null;
-            
-            localStorage.clear(); // LIMPIEZA TOTAL DE CACHÉ NATIVA
-            
+            localStorage.clear();
             if (savedHistory) localStorage.setItem('routineHistory', savedHistory);
 
             this.currentPool = structuredClone(this.defaultTasks);
@@ -304,69 +307,35 @@ class RoutineManager {
         if (silent) { executeReset(); return; }
 
         Swal.fire({
-            title: '¿Formatear sistema?', text: "Esto eliminará toda la caché y el progreso. ¡Acción irreversible!", icon: 'warning',
-            showCancelButton: true, confirmButtonColor: '#ffcad4', cancelButtonColor: '#a0aec0', confirmButtonText: 'Sí, formatear'
+            title: '¿Reiniciar sistema?', text: "Se restaurará el pool de tareas semanal.", icon: 'warning',
+            showCancelButton: true, confirmButtonColor: '#ffcad4', cancelButtonColor: '#a0aec0', confirmButtonText: 'Sí, reiniciar'
         }).then((result) => {
-            if (result.isConfirmed) { 
-                executeReset(); 
-                Swal.fire('Sistema Limpio', 'Caché eliminada. Se ha restaurado tu planificador.', 'success'); 
-            }
+            if (result.isConfirmed) { executeReset(); }
         });
     }
-
-    // =========================================================
-    // MODALES PREMIUM (DIVERTIDOS Y VISUALES)
-    // =========================================================
 
     buildModalHTML(dataObject, emptyTitle, emptySub, isGold = false) {
         let html = '<div class="swal-grid">';
         let totalItems = 0;
-
         for (const [category, tasks] of Object.entries(dataObject)) {
             totalItems += tasks.length;
-            
-            html += `
-                <div class="swal-category-card ${isGold ? 'gold-card' : ''}">
-                    <span class="swal-cat-icon">${this.labels[category] || '🎯'}</span>
-                    <div class="swal-cat-title">${category}</div>
-            `;
-            
-            if (tasks.length === 0) {
-                html += `<div class="swal-empty-cat">Vacío ✨</div>`;
-            } else {
+            html += `<div class="swal-category-card ${isGold ? 'gold-card' : ''}"><span class="swal-cat-icon">${this.labels[category] || '🎯'}</span><div class="swal-cat-title">${category}</div>`;
+            if (tasks.length === 0) { html += `<div class="swal-empty-cat">Vacío ✨</div>`; } 
+            else {
                 html += `<ul class="swal-tags ${isGold ? 'gold-tags' : ''}">`;
                 tasks.forEach(task => html += `<li>${task}</li>`);
                 html += `</ul>`;
             }
-            html += `</div>`; // Cierre de card
+            html += `</div>`;
         }
         html += '</div>';
-
-        // Si literalmente no hay nada en todo el objeto
-        if (totalItems === 0) {
-            return `
-                <div style="text-align: center; padding: 2rem 0;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">👻</div>
-                    <h3 style="color: var(--text-main); font-weight: 800;">${emptyTitle}</h3>
-                    <p style="color: var(--text-muted);">${emptySub}</p>
-                </div>
-            `;
-        }
-
+        if (totalItems === 0) return `<div style="text-align: center; padding: 2rem 0;"><div style="font-size: 4rem; margin-bottom: 1rem;">👻</div><h3 style="color: var(--text-main); font-weight: 800;">${emptyTitle}</h3><p style="color: var(--text-muted);">${emptySub}</p></div>`;
         return html;
     }
 
     showPendingPool() {
-        const htmlContent = this.buildModalHTML(this.currentPool, '¡Todo completado!', 'No te quedan tareas en el Pool. ¡Eres una máquina!', false);
-        Swal.fire({ 
-            title: '🗂️ Tu Inventario Restante', 
-            html: htmlContent, 
-            width: '800px',
-            showConfirmButton: true,
-            confirmButtonText: 'Genial, a seguir',
-            confirmButtonColor: '#a2d2ff',
-            customClass: { popup: 'custom-swal' }
-        });
+        const htmlContent = this.buildModalHTML(this.currentPool, '¡Todo listo!', 'Pool vacío.', false);
+        Swal.fire({ title: '🗂️ Inventario Semanal', html: htmlContent, width: '800px', confirmButtonText: 'Cerrar', confirmButtonColor: '#a2d2ff' });
     }
 
     showCompletedPool() {
@@ -380,47 +349,21 @@ class RoutineManager {
             });
             consumedTasks[cat] = original; 
         }
-        
-        const htmlContent = this.buildModalHTML(consumedTasks, 'Aún no arrancas', 'No has completado tareas de la lista original. ¡Hoy es el día!', true);
-        Swal.fire({ 
-            title: '🏆 Salón de la Fama', 
-            html: htmlContent, 
-            width: '800px',
-            confirmButtonText: '¡Qué orgullo!',
-            confirmButtonColor: '#fbbf24',
-            customClass: { popup: 'custom-swal' }
-        });
+        const htmlContent = this.buildModalHTML(consumedTasks, 'Sin progreso', 'Aún no hay tareas terminadas.', true);
+        Swal.fire({ title: '🏆 Logros de la Semana', html: htmlContent, width: '800px', confirmButtonColor: '#fbbf24' });
     }
 
     showCustomTasks() {
         const customTasks = Object.values(this.todaySchedule || {}).filter(t => t.isCustom);
-        
         let htmlContent = '';
         if (customTasks.length === 0) {
-            htmlContent = `
-                <div style="text-align: center; padding: 2rem 0;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">🧘‍♂️</div>
-                    <h3 style="color: var(--text-main); font-weight: 800;">Día tranquilo</h3>
-                    <p style="color: var(--text-muted);">No has agregado tareas extra (bomberazos) el día de hoy.</p>
-                </div>
-            `;
+            htmlContent = `<div style="text-align: center; padding: 2rem 0;"><div style="font-size: 4rem; margin-bottom: 1rem;">🧘‍♂️</div><p>No hay tareas extra.</p></div>`;
         } else {
-            htmlContent = '<div class="swal-grid" style="grid-template-columns: 1fr;">';
-            htmlContent += `<div class="swal-category-card" style="border-color: #cbd5e1;">`;
-            htmlContent += `<span class="swal-cat-icon">📌</span><div class="swal-cat-title">Extras de Hoy</div>`;
-            htmlContent += `<ul class="swal-tags" style="align-items: center;">`;
-            customTasks.forEach(t => htmlContent += `<li style="width: 80%;">${t.name}</li>`);
+            htmlContent = '<div class="swal-grid" style="grid-template-columns: 1fr;"><div class="swal-category-card"><span class="swal-cat-icon">📌</span><div class="swal-cat-title">Extras</div><ul class="swal-tags">';
+            customTasks.forEach(t => htmlContent += `<li>${t.name}</li>`);
             htmlContent += `</ul></div></div>`;
         }
-
-        Swal.fire({
-            title: '📌 Tareas Extra',
-            html: htmlContent,
-            confirmButtonColor: '#94a3b8',
-            confirmButtonText: 'Entendido',
-            width: '450px',
-            customClass: { popup: 'custom-swal' }
-        });
+        Swal.fire({ title: '📌 Tareas Extra', html: htmlContent, confirmButtonColor: '#94a3b8', width: '450px' });
     }
 
     bindEvents() {
@@ -428,26 +371,14 @@ class RoutineManager {
         this.DOM.btnAccept.addEventListener('click', () => this.acceptRoutine());
         this.DOM.btnReject.addEventListener('click', () => this.rejectRoutine());
         this.DOM.btnReset.addEventListener('click', () => this.resetSystem());
-        
         this.DOM.btnShowPendingPool.addEventListener('click', () => this.showPendingPool());
         this.DOM.btnShowCompletedPool.addEventListener('click', () => this.showCompletedPool());
-        
-        // NUEVOS EVENTOS
         this.DOM.btnAddCustom.addEventListener('click', () => this.addCustomTask());
         this.DOM.btnShowCustom.addEventListener('click', () => this.showCustomTasks());
-        
-        // Permitir presionar "Enter" para agregar tarea extra
-        this.DOM.inputCustomTask.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.addCustomTask();
-        });
-
+        this.DOM.inputCustomTask.addEventListener('keypress', (e) => { if (e.key === 'Enter') this.addCustomTask(); });
         this.DOM.routineTracker.addEventListener('change', (e) => {
-            if (e.target.classList.contains('task-checkbox')) {
-                const categoria = e.target.getAttribute('data-cat');
-                this.toggleTask(categoria);
-            }
+            if (e.target.classList.contains('task-checkbox')) { this.toggleTask(e.target.getAttribute('data-cat')); }
         });
     }
 }
-
 document.addEventListener('DOMContentLoaded', () => new RoutineManager());
